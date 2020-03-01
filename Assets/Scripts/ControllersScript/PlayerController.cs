@@ -22,6 +22,7 @@ public class PlayerController : MonoBehaviour {
 		get { return camera.transform.position; }
 		set { camera.transform.position = value; }
 	}
+	float distToGround  ;
 
 	public float gravityScale = 1.0f;
 	public static float globalGravity = -9.81f;
@@ -31,11 +32,12 @@ public class PlayerController : MonoBehaviour {
 		rb = gameObject.GetComponent<Rigidbody> ();		
 		ac = gameObject.GetComponent<Animator> ();	
 		cameraDistance = CameraPos - PlayerPos;
+
 	}
 
 
 	void FixedUpdate() {
-		HorizontalMove ();
+		HorizontalMove (); 
 		VerticalMove ();
 		Vector3 gravity = globalGravity * gravityScale * Vector3.up;
 		rb.AddForce(gravity, ForceMode.Acceleration);
@@ -52,32 +54,36 @@ public class PlayerController : MonoBehaviour {
 
 	void VerticalMove() {
 		var verticalAxis = Input.GetAxis("Vertical");
-
-		if (gravityScale > 0 && Mathf.Abs(rb.velocity.y) < 0.1f && isGrounded && verticalAxis > 0) {
+		if (isGrounded && verticalAxis > 0) {
 			StartCoroutine(Jump ());
 		}
-		if ((PlayerState == State.Run || PlayerState == State.Jump) && verticalAxis < 0) {			
-			StartCoroutine (DoSlide ());
+		if ((PlayerState == State.Run ||  Mathf.Abs(rb.velocity.y) > 0.1f) && verticalAxis < 0) {	
+
+			if (isGrounded) {
+				PlayerState = State.Slide;
+				StartCoroutine (DoSlide ());
+			} else {
+				StartCoroutine(DoGrounded ());
+			}
 		}
 	}
 
+	IEnumerator DoGrounded() {
+		gravityScale = 5f;
+		yield return new WaitUntil (() => !isGrounded);
+		gravityScale = 1f;
+	}
 
 
 	IEnumerator DoSlide() {
-		if (!isGrounded) {
-			gravityScale = 1.5f;
-			ac.SetTrigger ("Slide");
-			yield return new WaitUntil (() => !isGrounded);
-			gravityScale = 4f;
-		} else {
-			//ac.SetTrigger ("Slide");
-		}
 		var cc = gameObject.transform.GetChild (0).gameObject.GetComponent<CapsuleCollider> ();
 		cc.center = new Vector3 (0, .26f, 0);
 		cc.direction = 2;
+		yield return new WaitForSeconds (0.21f);
 		yield return new WaitUntil (() => ac.GetCurrentAnimatorStateInfo (0).IsName ("SLIDE"));
 		cc.center = new Vector3 (0, .76f, 0);
 		cc.direction = 1;
+		PlayerState = State.Run;
 	}
 
 	enum State {
@@ -87,30 +93,40 @@ public class PlayerController : MonoBehaviour {
 		Falling
 	}
 
-	State PlayerState= State.Run;
+	State _playerState = State.Run;
 
+	State PlayerState {
+		get { return _playerState; }
+		set {
+			_playerState = value; 
+			ac.SetInteger ("PlayerState", (int)_playerState);
+		}
+	}
 	void Update () {
-		print ("Update: " + isGrounded);
 	}
 
 	void LateUpdate () {
-		print ("LateUpdate: " + isGrounded);
+		if (rb.velocity.y < -.25f) {
+			PlayerState = State.Falling;
+		}
+
+		if (isGrounded && !jumpWait && Mathf.Abs(rb.velocity.y) < .001f) {
+			PlayerState = State.Run;			
+		}
 	}
 
 	bool isGrounded;
 	bool jumpWait = false;
 	void OnCollisionStay(Collision other) {
-		print (other.gameObject.tag);
+		//print (Time.fixedTime + "Stay: " + other.gameObject.tag);
 		if (other.gameObject.CompareTag ("Road")) {
 			isGrounded = true;
 			ac.SetBool ("isGrounded", isGrounded);
-			if (!jumpWait) {
-				PlayerState = State.Run;
-			}
 		}
 	}
 
 	void OnCollisionExit(Collision other) {
+		//print (Time.fixedTime + "Exit: " + other.gameObject.tag);
 		if (other.gameObject.CompareTag ("Road")) {
 			isGrounded = false;
 			ac.SetBool ("isGrounded", isGrounded);
@@ -120,11 +136,9 @@ public class PlayerController : MonoBehaviour {
 	IEnumerator Jump() {
 		PlayerState = State.Jump;
 		jumpWait = true;
-		gravityScale = -2f;
+		gravityScale = -3f;
 		yield return new WaitForSeconds (JumpTime);
 		gravityScale = 1;
-		yield return new WaitForSeconds (0.2f);
-		PlayerState = State.Falling;
 		jumpWait = false;
 	}
 }
