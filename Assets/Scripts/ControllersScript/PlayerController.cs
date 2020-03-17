@@ -2,37 +2,19 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PlayerController : MonoBehaviour {
+public class PlayerController : BaseGameObject {
 
 	public float JumpTime = 0.5f;
 
-	Vector3 PlayerPos { 
-		get { return gameObject.transform.position; } 
-		set { gameObject.transform.position = value; }	
-	}
 	Rigidbody rb;
 	Animator ac;
-
-	[SerializeField]
-	GameObject camera;
-
-	Vector3 cameraDistance;
-
-	Vector3 CameraPos {
-		get { return camera.transform.position; }
-		set { camera.transform.position = value; }
-	}
-	float distToGround  ;
 
 	public float gravityScale = 1.0f;
 	public static float globalGravity = -9.81f;
 
-	// Use this for initialization
 	void Awake () {
 		rb = gameObject.GetComponent<Rigidbody> ();		
 		ac = gameObject.GetComponent<Animator> ();	
-		cameraDistance = CameraPos - PlayerPos;
-
 	}
 
 
@@ -41,14 +23,13 @@ public class PlayerController : MonoBehaviour {
 		VerticalMove ();
 		Vector3 gravity = globalGravity * gravityScale * Vector3.up;
 		rb.AddForce(gravity, ForceMode.Acceleration);
-		CameraPos = Vector3.MoveTowards(CameraPos, PlayerPos+cameraDistance, .4f);
 		ac.SetFloat("VelocityY", rb.velocity.y);
 	}
 
 	void HorizontalMove() {
 		var horisontalAxis = Input.GetAxis("Horizontal");
-		var targetPos = new Vector3 (PlayerPos.x, PlayerPos.y, Mathf.Clamp (PlayerPos.z + horisontalAxis, -1, 1));
-		PlayerPos = Vector3.MoveTowards(PlayerPos, targetPos, .4f);
+		var targetPos = new Vector3 (ObjectPosition.x, ObjectPosition.y, Mathf.Clamp (ObjectPosition.z + horisontalAxis, -1, 1));
+		ObjectPosition = Vector3.MoveTowards(ObjectPosition, targetPos, .4f);
 
 	}
 
@@ -69,7 +50,7 @@ public class PlayerController : MonoBehaviour {
 	}
 
 	IEnumerator DoGrounded() {
-		gravityScale = 5f;
+		gravityScale = 2f;
 		yield return new WaitUntil (() => !isGrounded);
 		gravityScale = 1f;
 	}
@@ -109,7 +90,10 @@ public class PlayerController : MonoBehaviour {
 		if (rb.velocity.y < -.25f) {
 			PlayerState = State.Falling;
 		}
-
+		//print (Time.fixedTime + " rb.velocity.y :" + Mathf.Round(rb.velocity.y * 10));
+		//print (Time.fixedTime + " PlayerState :" + PlayerState);
+		//print (Time.fixedTime + " jumpWait: " + jumpWait);
+		//print (Time.fixedTime + " isGrounded: " + isGrounded);
 		if (isGrounded && !jumpWait && Mathf.Abs(rb.velocity.y) < .001f) {
 			PlayerState = State.Run;			
 		}
@@ -136,7 +120,7 @@ public class PlayerController : MonoBehaviour {
 	IEnumerator Jump() {
 		PlayerState = State.Jump;
 		jumpWait = true;
-		gravityScale = -3f;
+		gravityScale = -0.8f;
 		yield return new WaitForSeconds (JumpTime);
 		gravityScale = 1;
 		jumpWait = false;

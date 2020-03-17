@@ -1,19 +1,20 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
-public class RoadController : MonoBehaviour {
+public class RoadController : BaseGameObject {
 
-	public float speed = 5;
+    public static GameObject LastRoad;
 
 	// Use this for initialization
 	void Start () {
-		
+	    LastRoad = gameObject;
 	}
+
+    void FixedUpdate() {
+        var roadspeed = GameManager.Instance.RoadSpeed;
+        transform.Translate(Vector3.right * roadspeed * Time.fixedDeltaTime);
+    }
 	
 	// Update is called once per frame
 	void Update () {
-		var move = new Vector3 (speed, 0, 0) * Time.deltaTime;
-		gameObject.transform.position += move;
 	}
 }
