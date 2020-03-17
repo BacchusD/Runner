@@ -34,7 +34,6 @@ class LevelFactory  {
         }
 
         public void AddNextUnit(GameObject baseObject) {
-            Debug.Log("AddNextUnit");
             var levelUnit = RoadUnitJoin[_lastUnit];
             _barrierManager.InstantiateWall(baseObject, (BlockPosition)levelUnit.RandomBarierType(barrierProbability));
             _roadManager.Instantiate(baseObject, levelUnit.RandomRoadType());
@@ -194,7 +193,6 @@ class LevelFactory  {
             public RoadUnit RandomRoadType() {
                 var group = randomExp.Next(_roadJoint.Length);
                 var element = random.Next(_roadJoint[group].Length);
-                Debug.Log("group: " + group + "element :" + element);
                 return _roadJoint[group][element];
             }
 
